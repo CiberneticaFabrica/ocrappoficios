@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador de Documentos PDF</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #082567;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: #120907;
+        }
+
+        .header-section {
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            padding: 15px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .header-section:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.25);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            min-height: calc(100vh - 100px);
+        }
+
+        .upload-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: white;
+            margin: 0;
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            letter-spacing: -0.02em;
+        }
+
+        .upload-section {
+            border: 3px dashed #082567;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(32, 164, 216, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-section:hover::before {
+            left: 100%;
+        }
+
+        .upload-section:hover {
+            border-color: #156393;
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(32, 164, 216, 0.2);
+        }
+
+        .upload-section.dragover {
+            border-color: #156393;
+            background: #e9ecef;
+            transform: scale(1.02) translateY(-2px);
+            box-shadow: 0 20px 40px rgba(32, 164, 216, 0.3);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #082567;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(32, 164, 216, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover .upload-icon {
+            transform: scale(1.1);
+            filter: drop-shadow(0 6px 12px rgba(32, 164, 216, 0.4));
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 20px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: #082567;
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 10px;
+            box-shadow: 0 8px 20px rgba(32, 164, 216, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            background: #156393;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(32, 164, 216, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .file-info {
+            background: #FFFFFF;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            display: none;
+            border: 1px solid rgba(32, 164, 216, 0.2);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .file-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-details {
+            color: #555;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .file-details p {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: rgba(32, 164, 216, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #082567;
+        }
+
+        .file-details strong {
+            color: #156393;
+            font-weight: 600;
+        }
+
+        .progress-section {
+            margin: 40px 0;
+            display: none;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 2px solid #082567;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #047adb;
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 13px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .status-processing {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .status-processing::before {
+            background: linear-gradient(90deg, #ffc107, #ff8c00);
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .status-success::before {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .status-error::before {
+            background: linear-gradient(90deg, #dc3545, #e74c3c);
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+            min-height: 85vh;
+        }
+
+        @media (max-width: 1400px) {
+            .results-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .results-card {
+                max-height: 60vh;
+            }
+            
+            .document-viewer {
+                height: 60vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .results-layout {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .results-card {
+                max-height: 50vh;
+                padding: 20px;
+            }
+            
+            .document-viewer {
+                height: 50vh;
+                padding: 15px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .info-item {
+                padding: 12px;
+            }
+            
+            .persons-table {
+                font-size: 0.8em;
+            }
+            
+            .persons-table th,
+            .persons-table td {
+                padding: 8px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                padding: 0 15px;
+            }
+            
+            .header-content h1 {
+                font-size: 1.1em;
+            }
+            
+            .upload-card {
+                padding: 15px;
+            }
+            
+            .upload-section {
+                padding: 25px 15px;
+            }
+            
+            .btn {
+                padding: 10px 18px;
+                font-size: 0.85em;
+            }
+        }
+
+        .results-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 25px;
+            border-left: 6px solid #082567;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            max-height: 85vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #082567 #f0f0f0;
+        }
+
+        .results-card::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-card::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .results-card::-webkit-scrollbar-thumb {
+            background: #082567;
+            border-radius: 4px;
+        }
+
+        .results-card::-webkit-scrollbar-thumb:hover {
+            background: #156393;
+        }
+
+        .results-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #082567;
+        }
+
+        .document-viewer {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            border-left: 6px solid #082567;
+            height: 85vh;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+        }
+
+        .document-viewer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #082567;
+        }
+
+        .document-viewer h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .pdf-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-viewer {
+            width: 100%;
+            height: 100%;
+            background: #2d2d2d;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pdf-canvas-container {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .pdf-canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            background: white;
+        }
+
+        .pdf-controls {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 15px;
+            border-radius: 25px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .pdf-controls button {
+            background: #082567;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-controls button:hover:not(:disabled) {
+            background: #156393;
+            transform: translateY(-1px);
+        }
+
+        .pdf-controls button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pdf-controls .page-info {
+            color: white;
+            font-size: 12px;
+            min-width: 80px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .pdf-zoom-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .pdf-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .pdf-loading .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #082567;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .pdf-error {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 40px;
+            font-size: 14px;
+        }
+
+        .no-document {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .document-controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .doc-btn {
+            background: linear-gradient(135deg, #082567, #156393);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .doc-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .results-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .info-item {
+            background: #FFFFFF;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(32, 164, 216, 0.2);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: #082567;
+        }
+
+        .info-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #156393;
+            font-size: 0.8em;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 1em;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        .persons-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            font-size: 0.9em;
+        }
+
+        .persons-table th,
+        .persons-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .persons-table th {
+            background: #082567;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .persons-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .persons-table tbody tr:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            transform: scale(1.01);
+        }
+
+        .persons-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #082567;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0 15px;
+            }
+            
+            .upload-card {
+                padding: 20px;
+            }
+            
+            .upload-section {
+                padding: 30px 20px;
+            }
+            
+            .upload-icon {
+                font-size: 3em;
+            }
+            
+            .upload-text {
+                font-size: 1.1em;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                font-size: 0.9em;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .results-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header-content h1 {
+                font-size: 1.2em;
+            }
+            
+            .header-content p {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                padding: 0 15px;
+            }
+            
+            .header-content h1 {
+                font-size: 1.1em;
+            }
+            
+            .upload-card {
+                padding: 15px;
+            }
+            
+            .upload-section {
+                padding: 25px 15px;
+            }
+            
+            .btn {
+                padding: 10px 18px;
+                font-size: 0.85em;
+            }
+        }
+
+        /* Animaciones adicionales */
+        .results-section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-item {
+            animation: fadeInScale 0.4s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .json-viewer {
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            color: #d4d4d4;
+            padding: 25px;
+            border-radius: 15px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 25px 0;
+            white-space: pre-wrap;
+            border: 1px solid rgba(32, 164, 216, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .json-viewer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #082567;
+        }
+
+        .confidence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .confidence-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .confidence-alta {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .confidence-alta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+        }
+
+        .confidence-media {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .confidence-media:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
+        }
+
+        .confidence-baja {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .confidence-baja:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="header-content">
+            <div style="display: flex; align-items: center; justify-content: space-between; max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="font-size: 2em;">🚀</div>
+                    <div>
+                        <h1 style="font-size: 1.5em; margin: 0; font-weight: 600;">Procesador Inteligente de Documentos PDF</h1>
+                        <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0; font-size: 0.9em; font-weight: 300;">
+                            Extrae información automáticamente con IA avanzada
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; font-size: 0.9em; color: rgba(255,255,255,0.9);">
+                        📄 PDF Processing
+                    </div>
+                    <div id="statusIndicator" style="display: none; background: rgba(40, 167, 69, 0.2); padding: 8px 15px; border-radius: 20px; font-size: 0.9em; color: #28a745; border: 1px solid rgba(40, 167, 69, 0.3);">
+                        ⚡ Procesando...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="upload-card">
+            <div class="upload-section" id="uploadSection" onclick="handleUploadClick(event)">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">
+                    <strong>Arrastra tu archivo PDF aquí</strong><br>
+                    <span style="font-size: 0.9em; opacity: 0.8;">o haz clic para seleccionar</span>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                    🔍 Seleccionar PDF
+                </button>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <h3>📋 Información del Archivo</h3>
+                <div class="file-details" id="fileDetails"></div>
+                <button class="btn" id="processBtn" onclick="processDocument()">
+                    ⚡ Procesar Documento con IA
+                </button>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="loading-spinner"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="status-message" id="statusMessage"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-layout">
+                <div class="results-card">
+                    <h3>🎯 Resultados del Procesamiento</h3>
+                    <div id="resultsContent"></div>
+                </div>
+                
+                <div class="document-viewer" id="documentViewer">
+                    <h3>📄 Documento Original</h3>
+                    <div class="document-controls" id="documentControls" style="display: none;">
+                        <button class="doc-btn" onclick="openDocumentInNewTab()">
+                            🔗 Abrir en nueva pestaña
+                        </button>
+                        <button class="doc-btn" onclick="downloadDocument()">
+                            💾 Descargar PDF
+                        </button>
+                    </div>
+                    <div class="pdf-container" id="pdfContainer">
+                        <p class="no-document">No hay documento disponible para visualizar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        let currentFile = null;
+        let processingInterval = null;
+        let progressValue = 0;
+        let currentDocumentUrl = null;
+        let pdfDocument = null;
+        let currentPage = 1;
+        let currentScale = 1.0;
+
+        // Configuración de la API
+        const API_BASE_URL = 'https://kmx23ql2k3.execute-api.us-east-1.amazonaws.com/Dev';
+
+        // Elementos del DOM
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+        const processBtn = document.getElementById('processBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const statusMessage = document.getElementById('statusMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+
+        // Event listeners para drag & drop
+        uploadSection.addEventListener('dragover', handleDragOver);
+        uploadSection.addEventListener('dragleave', handleDragLeave);
+        uploadSection.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleUploadClick(e) {
+            // Solo abrir el selector si se hace clic en el área de upload, no en el botón
+            if (e.target === uploadSection || e.target.classList.contains('upload-icon') || e.target.classList.contains('upload-text')) {
+                fileInput.click();
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handleFile(files[0]);
+            } else {
+                showError('Por favor selecciona un archivo PDF válido.');
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            currentFile = file;
+            
+            // Mostrar información del archivo
+            fileDetails.innerHTML = `
+                <p><strong>Nombre:</strong> ${file.name}</p>
+                <p><strong>Tamaño:</strong> ${formatFileSize(file.size)}</p>
+                <p><strong>Tipo:</strong> ${file.type}</p>
+                <p><strong>Última modificación:</strong> ${new Date(file.lastModified).toLocaleString()}</p>
+            `;
+            
+            fileInfo.style.display = 'block';
+            processBtn.disabled = false;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function processDocument() {
+            if (!currentFile) {
+                showError('Por favor selecciona un archivo PDF primero.');
+                return;
+            }
+
+            // Mostrar sección de progreso
+            progressSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+            processBtn.disabled = true;
+            
+            // Mostrar indicador en el header
+            showHeaderStatus('⚡ Iniciando procesamiento...', 'processing');
+            
+            // Iniciar progreso
+            progressValue = 10;
+            updateProgress();
+            showStatus('Convirtiendo PDF a Base64...', 'processing');
+
+            try {
+                // Convertir PDF a Base64
+                const base64Content = await fileToBase64(currentFile);
+                
+                progressValue = 30;
+                updateProgress();
+                showStatus('Enviando documento para procesamiento...', 'processing');
+                showHeaderStatus('📤 Enviando documento...', 'processing');
+
+                // Enviar documento a la API
+                const response = await fetch(`${API_BASE_URL}/document`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pdf_content: base64Content,
+                        annotation_type: 'document'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error en la API: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success && result.job_id) {
+                    progressValue = 50;
+                    updateProgress();
+                    showStatus('Documento enviado. Iniciando procesamiento...', 'processing');
+                    showHeaderStatus('⏳ Procesando con IA...', 'processing');
+                    
+                    // Iniciar verificación de estado
+                    startStatusCheck(result.job_id);
+                } else {
+                    throw new Error(result.message || 'Error al procesar el documento');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Error al procesar el documento: ${error.message}`);
+                showHeaderStatus('❌ Error en procesamiento', 'error');
+                resetProcessing();
+                
+                // Ocultar indicador después de un tiempo
+                setTimeout(hideHeaderStatus, 3000);
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Eliminar el prefijo "data:application/pdf;base64,"
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function startStatusCheck(jobId) {
+            const checkStatus = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/document/status/${jobId}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Error al verificar estado: ${response.status}`);
+                    }
+
+                    const statusData = await response.json();
+                    
+                    if (statusData.status === 'completed') {
+                        clearInterval(processingInterval);
+                        progressValue = 100;
+                        updateProgress();
+                        showStatus('✅ Procesamiento completado exitosamente', 'success');
+                        showHeaderStatus('✅ Procesamiento completado', 'success');
+                        
+                        setTimeout(() => {
+                            displayResults(statusData.result);
+                            // NUEVO: Mostrar documento si está disponible
+                            if (statusData.document_url) {
+                                displayDocument(statusData.document_url);
+                            }
+                            // Ocultar indicador del header
+                            setTimeout(hideHeaderStatus, 2000);
+                        }, 1000);
+                        
+                    } else if (statusData.status === 'failed') {
+                        clearInterval(processingInterval);
+                        showError('❌ Error en el procesamiento del documento');
+                        showHeaderStatus('❌ Error en procesamiento', 'error');
+                        resetProcessing();
+                        
+                        // Ocultar indicador después de un tiempo
+                        setTimeout(hideHeaderStatus, 3000);
+                        
+                    } else if (statusData.status === 'processing') {
+                        // Incrementar progreso gradualmente
+                        if (progressValue < 90) {
+                            progressValue += 5;
+                            updateProgress();
+                        }
+                        showStatus('⏳ Procesando documento...', 'processing');
+                        showHeaderStatus('⏳ Procesando con IA...', 'processing');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error al verificar estado:', error);
+                    clearInterval(processingInterval);
+                    showError(`Error al verificar estado: ${error.message}`);
+                    resetProcessing();
+                }
+            };
+
+            // Verificar estado cada 3 segundos
+            processingInterval = setInterval(checkStatus, 3000);
+            checkStatus(); // Verificar inmediatamente
+        }
+
+        function displayResults(result) {
+            const data = result.data;
+            
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <div style="background: #082567; color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="margin: 0; font-size: 1.1em; font-weight: 600;">📋 Resumen del Documento</h4>
+                        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 0.9em;">Información extraída automáticamente</p>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">📄 Tipo de Documento</div>
+                        <div class="info-value">${data.tipo_oficio_detectado || 'No especificado'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🎯 Nivel de Confianza</div>
+                        <div class="info-value">
+                            <span class="confidence-badge confidence-${data.nivel_confianza?.toLowerCase() || 'baja'}">
+                                ${data.nivel_confianza || 'No especificado'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🔢 Número de Oficio</div>
+                        <div class="info-value">${data.informacion_extraida?.numero_oficio || 'No especificado'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">👤 Autoridad</div>
+                        <div class="info-value">${data.informacion_extraida?.autoridad || 'No especificado'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📅 Fecha de Emisión</div>
+                        <div class="info-value">${data.informacion_extraida?.fecha_emision || 'No especificado'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📁 Expediente</div>
+                        <div class="info-value">${data.informacion_extraida?.expediente || 'No especificado'}</div>
+                    </div>
+                </div>
+            `;
+
+            // Mostrar lista de personas si existe
+            if (data.lista_personas && data.lista_personas.length > 0) {
+                html += `
+                    <div style="margin: 20px 0;">
+                        <div style="background: #082567; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <h4 style="margin: 0; font-size: 1.1em; font-weight: 600;">👥 Personas Identificadas</h4>
+                            <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 0.9em;">${data.lista_personas.length} persona(s) encontrada(s)</p>
+                        </div>
+                    </div>
+                    <table class="persons-table">
+                        <thead>
+                            <tr>
+                                <th>👤 Nombre</th>
+                                <th>🆔 ID</th>
+                                <th>📁 Exp.</th>
+                                <th>💰 Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.lista_personas.forEach(persona => {
+                    html += `
+                        <tr>
+                            <td><strong>${persona.nombre || 'No especificado'}</strong></td>
+                            <td>${persona.identificacion || 'No especificado'}</td>
+                            <td>${persona.no_exp || 'No especificado'}</td>
+                            <td><span style="color: #28a745; font-weight: 600;">${persona.monto || 'No especificado'}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            // Mostrar palabras clave encontradas
+            if (data.palabras_clave_encontradas && data.palabras_clave_encontradas.length > 0) {
+                html += `
+                    <div style="margin: 20px 0;">
+                        <div style="background: #082567; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <h4 style="margin: 0; font-size: 1.1em; font-weight: 600;">🔍 Palabras Clave</h4>
+                            <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 0.9em;">${data.palabras_clave_encontradas.length} palabra(s) clave</p>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${data.palabras_clave_encontradas.map(palabra => 
+                                `<span style="background: #082567; color: white; padding: 6px 12px; border-radius: 15px; font-size: 0.8em; font-weight: 500;">${palabra}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Mostrar observaciones
+            if (data.observaciones) {
+                html += `
+                    <div style="margin: 20px 0;">
+                        <div style="background: #082567; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <h4 style="margin: 0; font-size: 1.1em; font-weight: 600;">📝 Observaciones</h4>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border-left: 3px solid #082567;">
+                            <p style="margin: 0; line-height: 1.5; color: #120907; font-size: 0.9em;">${data.observaciones}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Mostrar JSON completo en un collapsible
+                            html += `
+                    <div style="margin: 20px 0;">
+                        <details style="margin-top: 15px;">
+                            <summary style="cursor: pointer; font-weight: 600; padding: 12px; background: #082567; color: white; border-radius: 8px; font-size: 1em;">
+                                🔧 Ver Respuesta Técnica (JSON)
+                            </summary>
+                            <div class="json-viewer" style="font-size: 0.8em; padding: 15px;">${JSON.stringify(result, null, 2)}</div>
+                        </details>
+                    </div>
+                `;
+
+            resultsContent.innerHTML = html;
+            resultsSection.style.display = 'block';
+            
+            // Ocultar sección de progreso después de un momento
+            setTimeout(() => {
+                progressSection.style.display = 'none';
+                resetProcessing();
+            }, 2000);
+        }
+
+        function updateProgress() {
+            progressFill.style.width = progressValue + '%';
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+        }
+
+        function showError(message) {
+            showStatus(message, 'error');
+        }
+
+        function resetProcessing() {
+            processBtn.disabled = false;
+            progressValue = 0;
+            updateProgress();
+            
+            if (processingInterval) {
+                clearInterval(processingInterval);
+                processingInterval = null;
+            }
+        }
+
+        function displayDocument(documentUrl) {
+            const documentViewer = document.getElementById('documentViewer');
+            const pdfContainer = document.getElementById('pdfContainer');
+            const documentControls = document.getElementById('documentControls');
+            
+            if (documentUrl && documentUrl !== 'null') {
+                currentDocumentUrl = documentUrl;
+                
+                // Mostrar información de depuración
+                showPDFDebugInfo(documentUrl);
+                
+                // Mostrar controles
+                documentControls.style.display = 'flex';
+                
+                // Mostrar mensaje de carga inicial
+                pdfContainer.innerHTML = `
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: white; border-radius: 8px;">
+                        <div style="text-align: center; color: #082567;">
+                            <div style="font-size: 3em; margin-bottom: 15px;">📄</div>
+                            <div style="font-size: 1.2em; margin-bottom: 10px; font-weight: 600;">Cargando documento...</div>
+                            <div style="font-size: 0.9em; color: #666;">Preparando Google Drive Viewer</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Ir directamente a Google Drive Viewer para todas las URLs
+                console.log('Cargando documento con Google Drive Viewer');
+                
+                // Pequeño delay para mostrar el mensaje de carga
+                setTimeout(() => {
+                    loadPDFWithGoogleDrive(documentUrl);
+                }, 500);
+                
+                documentViewer.style.display = 'block';
+            } else {
+                pdfContainer.innerHTML = '<p class="no-document">Documento no disponible para visualizar</p>';
+                documentControls.style.display = 'none';
+            }
+        }
+
+        async function loadPDF(url) {
+            const loading = document.getElementById('pdfLoading');
+            const controls = document.getElementById('pdfControls');
+            
+            try {
+                // Configurar PDF.js worker
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                
+                console.log('Intentando cargar PDF desde:', url);
+                
+                // Verificar si la URL es válida
+                if (!url || url === 'null' || url === 'undefined') {
+                    throw new Error('URL del documento no válida');
+                }
+                
+                // Método 1: Intentar cargar directamente con configuración optimizada para S3
+                let loadingTask;
+                
+                try {
+                    loadingTask = pdfjsLib.getDocument({
+                        url: url,
+                        httpHeaders: {
+                            'Accept': 'application/pdf',
+                            'Cache-Control': 'no-cache'
+                        },
+                        withCredentials: false,
+                        isEvalSupported: false,
+                        disableAutoFetch: false,
+                        disableStream: false,
+                        disableRange: false,
+                        maxImageSize: -1,
+                        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                        cMapPacked: true
+                    });
+                    
+                    pdfDocument = await loadingTask.promise;
+                    console.log('PDF cargado exitosamente método 1');
+                    
+                } catch (error1) {
+                    console.log('Método 1 falló, intentando método 2 (fetch + ArrayBuffer):', error1.message);
+                    
+                    // Método 2: Descargar como ArrayBuffer y cargar
+                    try {
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            mode: 'cors',
+                            cache: 'no-cache',
+                            headers: {
+                                'Accept': 'application/pdf',
+                                'Cache-Control': 'no-cache'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const arrayBuffer = await response.arrayBuffer();
+                        console.log('PDF descargado, tamaño:', arrayBuffer.byteLength, 'bytes');
+                        
+                        if (arrayBuffer.byteLength === 0) {
+                            throw new Error('El archivo PDF está vacío');
+                        }
+                        
+                        loadingTask = pdfjsLib.getDocument({
+                            data: arrayBuffer,
+                            isEvalSupported: false,
+                            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                            cMapPacked: true
+                        });
+                        
+                        pdfDocument = await loadingTask.promise;
+                        console.log('PDF cargado exitosamente método 2');
+                        
+                    } catch (error2) {
+                        console.log('Método 2 falló, intentando método 3 (blob URL):', error2.message);
+                        
+                        // Método 3: Crear blob URL
+                        try {
+                            const response = await fetch(url, {
+                                method: 'GET',
+                                mode: 'cors'
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+                            
+                            const blob = await response.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            
+                            loadingTask = pdfjsLib.getDocument({
+                                url: blobUrl,
+                                isEvalSupported: false
+                            });
+                            
+                            pdfDocument = await loadingTask.promise;
+                            console.log('PDF cargado exitosamente método 3 (blob)');
+                            
+                        } catch (error3) {
+                            console.log('Método 3 falló, usando iframe fallback:', error3.message);
+                            showIframeFallback(url);
+                            return;
+                        }
+                    }
+                }
+                
+                console.log('Número de páginas:', pdfDocument.numPages);
+                
+                // Ocultar loading y mostrar controles
+                loading.style.display = 'none';
+                controls.style.display = 'flex';
+                
+                // Renderizar primera página
+                await renderPage(1);
+                
+            } catch (error) {
+                console.error('Error general cargando PDF:', error);
+                showIframeFallback(url);
+            }
+        }
+
+        function showIframeFallback(url) {
+            console.log('Usando fallback de iframe para mostrar PDF');
+            const pdfContainer = document.getElementById('pdfContainer');
+            const documentControls = document.getElementById('documentControls');
+            
+            // Mostrar controles
+            documentControls.style.display = 'flex';
+            
+            // Crear iframe como fallback
+            pdfContainer.innerHTML = `
+                <div style="width: 100%; height: 100%; position: relative; background: white;">
+                    <iframe 
+                        src="${url}" 
+                        style="width: 100%; height: 100%; border: none; border-radius: 8px;"
+                        title="Documento PDF">
+                    </iframe>
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                        Vista de navegador
+                    </div>
+                </div>
+            `;
+        }
+
+        // Función mejorada para manejar PDFs de S3
+        async function loadPDFFromS3(url) {
+            const loading = document.getElementById('pdfLoading');
+            const controls = document.getElementById('pdfControls');
+            
+            try {
+                console.log('Intentando cargar PDF desde S3:', url);
+                
+                // Verificar accesibilidad de la URL primero
+                const accessibility = await checkURLAccessibility(url);
+                console.log('Resultado de verificación:', accessibility);
+                
+                if (!accessibility.accessible) {
+                    console.log('URL no accesible, intentando Google Drive Viewer');
+                    loadPDFWithGoogleDrive(url);
+                    return;
+                }
+                
+                // Método específico para S3: usar proxy o CORS headers
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/pdf',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                console.log('PDF descargado de S3, tamaño:', arrayBuffer.byteLength, 'bytes');
+                
+                if (arrayBuffer.byteLength === 0) {
+                    throw new Error('El archivo PDF está vacío');
+                }
+                
+                // Configurar PDF.js worker
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                
+                const loadingTask = pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    isEvalSupported: false,
+                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                    cMapPacked: true
+                });
+                
+                pdfDocument = await loadingTask.promise;
+                console.log('PDF de S3 cargado exitosamente');
+                
+                // Ocultar loading y mostrar controles
+                loading.style.display = 'none';
+                controls.style.display = 'flex';
+                
+                // Renderizar primera página
+                await renderPage(1);
+                
+            } catch (error) {
+                console.error('Error cargando PDF desde S3:', error);
+                
+                // Intentar método alternativo para problemas de CORS
+                if (error.message.includes('CORS') || error.message.includes('cors') || error.message.includes('Failed to fetch')) {
+                    console.log('Detectado problema de CORS, intentando Google Drive Viewer');
+                    loadPDFWithGoogleDrive(url);
+                } else {
+                    // Mostrar opciones alternativas con múltiples servicios
+                    showAlternativeViewers(url);
+                }
+            }
+        }
+
+        // Función para verificar si la URL es accesible
+        async function checkURLAccessibility(url) {
+            try {
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    console.log('URL accesible, Content-Type:', response.headers.get('content-type'));
+                    return {
+                        accessible: true,
+                        contentType: response.headers.get('content-type'),
+                        contentLength: response.headers.get('content-length')
+                    };
+                } else {
+                    console.log('URL no accesible, status:', response.status);
+                    return {
+                        accessible: false,
+                        status: response.status
+                    };
+                }
+            } catch (error) {
+                console.log('Error verificando URL:', error.message);
+                return {
+                    accessible: false,
+                    error: error.message
+                };
+            }
+        }
+
+        // Función para manejar problemas de CORS específicos de S3
+        async function handleCORSIssue(url) {
+            const pdfContainer = document.getElementById('pdfContainer');
+            
+            try {
+                // Intentar usar un proxy CORS
+                const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+                console.log('Intentando con proxy CORS:', proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/pdf'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error con proxy: ${response.status}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Configurar PDF.js worker
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                
+                const loadingTask = pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    isEvalSupported: false
+                });
+                
+                pdfDocument = await loadingTask.promise;
+                console.log('PDF cargado exitosamente con proxy CORS');
+                
+                // Ocultar loading y mostrar controles
+                document.getElementById('pdfLoading').style.display = 'none';
+                document.getElementById('pdfControls').style.display = 'flex';
+                
+                // Renderizar primera página
+                await renderPage(1);
+                
+            } catch (proxyError) {
+                console.error('Error con proxy CORS:', proxyError);
+                
+                // Mostrar opciones alternativas con múltiples servicios
+                showAlternativeViewers(url);
+            }
+        }
+
+        // Función para mostrar múltiples opciones de visualización
+        function showAlternativeViewers(url) {
+            const pdfContainer = document.getElementById('pdfContainer');
+            
+            // Crear URLs para diferentes servicios
+            const googleDriveUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            const pdfJsUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}`;
+            const pdfViewerUrl = `https://pdfviewer.net/?url=${encodeURIComponent(url)}`;
+            
+            pdfContainer.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="font-size: 3em; margin-bottom: 20px;">⚠️</div>
+                    <h3 style="color: #333; margin-bottom: 15px;">Problema de CORS detectado</h3>
+                    <p style="margin-bottom: 20px;">El documento no se puede cargar directamente. Usa una de estas opciones:</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0;">
+                        
+                        <div style="background: linear-gradient(135deg, #4285f4, #34a853); color: white; padding: 20px; border-radius: 15px; cursor: pointer;" onclick="openInGoogleDrive('${googleDriveUrl}')">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
+                            <h4 style="margin: 0 0 10px 0;">Google Drive Viewer</h4>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.9em;">Visualizar con Google Docs</p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; padding: 20px; border-radius: 15px; cursor: pointer;" onclick="openInNewTab('${url}')">
+                            <div style="font-size: 2em; margin-bottom: 10px;">🔗</div>
+                            <h4 style="margin: 0 0 10px 0;">Abrir en Nueva Pestaña</h4>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.9em;">Abrir directamente en el navegador</p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 15px; cursor: pointer;" onclick="downloadDocument()">
+                            <div style="font-size: 2em; margin-bottom: 10px;">💾</div>
+                            <h4 style="margin: 0 0 10px 0;">Descargar PDF</h4>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.9em;">Guardar en tu dispositivo</p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #6f42c1, #8e44ad); color: white; padding: 20px; border-radius: 15px; cursor: pointer;" onclick="openInPDFViewer('${pdfViewerUrl}')">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📖</div>
+                            <h4 style="margin: 0 0 10px 0;">PDF Viewer Online</h4>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.9em;">Visualizar con servicio externo</p>
+                        </div>
+                        
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #667eea;">
+                        <strong>Información técnica:</strong><br>
+                        • URL: ${url}<br>
+                        • Error: Problema de CORS con S3<br>
+                        • Solución: Usar servicios externos o descargar
+                    </div>
+                </div>
+            `;
+        }
+
+        // Funciones para abrir en diferentes servicios
+        function openInGoogleDrive(url) {
+            window.open(url, '_blank');
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+        }
+
+        function openInPDFViewer(url) {
+            window.open(url, '_blank');
+        }
+
+        async function renderPage(pageNumber) {
+            if (!pdfDocument) return;
+            
+            try {
+                const page = await pdfDocument.getPage(pageNumber);
+                const canvas = document.getElementById('pdfCanvas');
+                const context = canvas.getContext('2d');
+                
+                // Calcular viewport con escala
+                const viewport = page.getViewport({ scale: currentScale });
+                
+                // Configurar canvas con mejor calidad
+                const outputScale = window.devicePixelRatio || 1;
+                
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
+                canvas.style.width = Math.floor(viewport.width) + "px";
+                canvas.style.height = Math.floor(viewport.height) + "px";
+                
+                const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+                
+                // Renderizar página
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport,
+                    transform: transform
+                };
+                
+                await page.render(renderContext).promise;
+                
+                // Actualizar información de página
+                updatePageInfo();
+                
+                console.log(`Página ${pageNumber} renderizada con escala ${currentScale}`);
+                
+            } catch (error) {
+                console.error('Error renderizando página:', error);
+                
+                // Si falla el render, mostrar error
+                const canvas = document.getElementById('pdfCanvas');
+                const context = canvas.getContext('2d');
+                context.fillStyle = '#ff6b6b';
+                context.font = '16px Arial';
+                context.fillText('Error renderizando página', 50, 50);
+            }
+        }
+
+        function updatePageInfo() {
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const zoomLevel = document.getElementById('zoomLevel');
+            
+            if (pdfDocument) {
+                pageInfo.textContent = `Página ${currentPage} de ${pdfDocument.numPages}`;
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= pdfDocument.numPages;
+                zoomLevel.textContent = Math.round(currentScale * 100) + '%';
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+            }
+        }
+
+        function nextPage() {
+            if (pdfDocument && currentPage < pdfDocument.numPages) {
+                currentPage++;
+                renderPage(currentPage);
+            }
+        }
+
+        function zoomIn() {
+            if (currentScale < 3.0) {
+                currentScale += 0.25;
+                renderPage(currentPage);
+            }
+        }
+
+        function zoomOut() {
+            if (currentScale > 0.5) {
+                currentScale -= 0.25;
+                renderPage(currentPage);
+            }
+        }
+
+        function fitToWidth() {
+            const container = document.getElementById('pdfCanvasContainer');
+            const containerWidth = container.clientWidth - 40; // padding
+            
+            if (pdfDocument) {
+                pdfDocument.getPage(currentPage).then(page => {
+                    const viewport = page.getViewport({ scale: 1.0 });
+                    const newScale = containerWidth / viewport.width;
+                    currentScale = Math.min(newScale, 2.0); // máximo 200%
+                    renderPage(currentPage);
+                });
+            }
+        }
+
+        function openDocumentInNewTab() {
+            if (currentDocumentUrl) {
+                window.open(currentDocumentUrl, '_blank');
+            }
+        }
+
+        function downloadDocument() {
+            if (currentDocumentUrl) {
+                // Crear un enlace temporal para descargar
+                const link = document.createElement('a');
+                link.href = currentDocumentUrl;
+                link.download = 'documento_procesado.pdf';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Función para mostrar información de depuración del PDF
+        function showPDFDebugInfo(url) {
+            console.log('=== INFORMACIÓN DE DEPURACIÓN DEL PDF ===');
+            console.log('URL del documento:', url);
+            console.log('Tipo de URL:', url.includes('s3.amazonaws.com') ? 'S3' : 'Otro');
+            console.log('Timestamp:', new Date().toISOString());
+            console.log('User Agent:', navigator.userAgent);
+            console.log('==========================================');
+        }
+
+        // Funciones para el indicador de estado en el header
+        function showHeaderStatus(message, type = 'processing') {
+            const statusIndicator = document.getElementById('statusIndicator');
+            if (statusIndicator) {
+                statusIndicator.style.display = 'inline-block';
+                statusIndicator.innerHTML = message;
+                
+                // Cambiar colores según el tipo
+                if (type === 'success') {
+                    statusIndicator.style.background = 'rgba(40, 167, 69, 0.2)';
+                    statusIndicator.style.color = '#28a745';
+                    statusIndicator.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                } else if (type === 'error') {
+                    statusIndicator.style.background = 'rgba(220, 53, 69, 0.2)';
+                    statusIndicator.style.color = '#dc3545';
+                    statusIndicator.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                } else {
+                    statusIndicator.style.background = 'rgba(255, 193, 7, 0.2)';
+                    statusIndicator.style.color = '#ffc107';
+                    statusIndicator.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                }
+            }
+        }
+
+        function hideHeaderStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            if (statusIndicator) {
+                statusIndicator.style.display = 'none';
+            }
+        }
+
+        // Función para cargar PDF usando Google Drive Viewer embebido
+        function loadPDFWithGoogleDrive(url) {
+            const pdfContainer = document.getElementById('pdfContainer');
+            const documentControls = document.getElementById('documentControls');
+            
+            // Mostrar controles
+            documentControls.style.display = 'flex';
+            
+            console.log('Cargando documento con Google Drive Viewer desde:', url);
+            
+            const googleDriveUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            
+            pdfContainer.innerHTML = `
+                <div style="width: 100%; height: 100%; position: relative; background: white; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="flex: 1; position: relative; min-height: 0;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #082567; text-align: center; z-index: 5;">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
+                            <div>Cargando documento con Google Drive Viewer...</div>
+                        </div>
+                        <iframe 
+                            src="${googleDriveUrl}" 
+                            style="width: 100%; height: 100%; border: none; border-radius: 8px; position: absolute; top: 0; left: 0;"
+                            title="Documento PDF - Google Drive Viewer"
+                            allowfullscreen
+                            onload="console.log('Google Drive Viewer cargado')"
+                            onerror="console.log('Error cargando Google Drive Viewer')">
+                        </iframe>
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(32, 164, 216, 0.9); color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; z-index: 10;">
+                            📄 Google Drive Viewer
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+
+
+    </script>
+</body>
+</html>
