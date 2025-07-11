@@ -1007,14 +1007,29 @@
             const data = result.data;
             const info = data.informacion_extraida || {};
 
-            // Lista de campos a mostrar
+            // Resumen arriba de la info-grid
+            let html = '';
+            html += `
+                <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+                    <div style="background: #3182ce; color: white; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 1em; display: flex; align-items: center; gap: 8px;">
+                        <span>📄</span>
+                        ${data.tipo_oficio_detectado || 'Tipo de documento no detectado'}
+                    </div>
+                    <div style="background: #f7fafc; color: #15803d; border: 1px solid #15803d; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.95em; display: flex; align-items: center; gap: 8px;">
+                        <span>🎯</span>
+                        Nivel de Confianza: <span style="text-transform: uppercase; margin-left: 4px;">${data.nivel_confianza || 'No especificado'}</span>
+                    </div>
+                </div>
+            `;
+
+            // Lista de campos a mostrar con los nuevos nombres
             const campos = [
-                { label: 'N° de Oficio', value: info.numero_oficio || data.numero_oficio },
+                { label: 'N° de Oficio', value: info.numero_oficio },
                 { label: 'Autoridad', value: info.autoridad },
                 { label: 'Fecha de Emisión', value: info.fecha_emision },
                 { label: 'Fecha de Recibido', value: info.fecha_recibido },
-                { label: 'Oficiado', value: info.oficiado },
-                { label: 'N° de Identificación', value: info.identificacion },
+                { label: 'Oficiado', value: info.oficiado_cliente },
+                { label: 'N° de Identificación', value: info.numero_identificacion },
                 { label: 'Expediente', value: info.expediente },
                 { label: 'Fecha de Auto', value: info.fecha_auto },
                 { label: 'N° de Auto', value: info.numero_auto },
@@ -1027,7 +1042,7 @@
                 { label: 'Delito', value: info.delito },
             ];
 
-            let html = `
+            html += `
                 <div style="margin-bottom: 25px;">
                     <div class="info-grid">
                         ${campos.map(campo => `
@@ -1059,7 +1074,6 @@
                             </thead>
                             <tbody>
                 `;
-                
                 data.lista_personas.forEach(persona => {
                     html += `
                         <tr>
@@ -1070,7 +1084,6 @@
                         </tr>
                     `;
                 });
-                
                 html += `
                             </tbody>
                         </table>
